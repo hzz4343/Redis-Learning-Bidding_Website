@@ -1,7 +1,7 @@
 import type { CreateUserAttrs } from '$services/types';
 import { genId } from '$services/utils';
 import { client } from '$services/redis';
-import { usernameUniqueKey, usersKey, usernamesKey } from '$services/keys';
+import { usernamesUniqueKey, usersKey, usernamesKey } from '$services/keys';
 
 export const getUserByUsername = async (username: string) => {
 	const decimalId = await client.zScore(usernamesKey(), username);
@@ -26,13 +26,13 @@ export const getUserById = async (id: string) => {
 export const createUser = async (attrs: CreateUserAttrs) => {
 	const id = genId();
 
-	const exists = await client.sIsMember(usernameUniqueKey(), attrs.username);
+	const exists = await client.sIsMember(usernamesUniqueKey(), attrs.username);
 	if (exists) {
 		throw new Error('Username is taken');
 	}
 
 	await client.hSet(usersKey(id), serialize(attrs));
-	await client.sAdd(usernameUniqueKey(), attrs.username);
+	await client.sAdd(usernamesUniqueKey(), attrs.username);
 	await client.zAdd(usernamesKey(), {
 		value: attrs.username,
 		score: parseInt(id, 16)
